@@ -10,8 +10,9 @@ function App() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-        const response = await axios.get(`${apiUrl}/api/tweets/`);
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+        const normalizedBase = baseUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+        const response = await axios.get(`${normalizedBase}/api/tweets/`);
         // Handle paginated response if applicable, else assume array
         const data = response.data.results ? response.data.results : response.data;
         setPosts(data);
