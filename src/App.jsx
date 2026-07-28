@@ -1,42 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Feed from './components/Feed';
+import React, { useContext } from 'react';
+import { Routes, Route, Navigate, Link } from 'react-router-dom';
+import { AuthContext } from './context/AuthContext';
+import { LogOut, User as UserIcon } from 'lucide-react';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Profile from './pages/Profile';
+import FeedWrapper from './components/FeedWrapper';
 
-function App() {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useContext(AuthContext);
+  if (loading) return <div className="loading">Carregando...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+};
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-        const normalizedBase = baseUrl.replace(/\/+$/, '').replace(/\/api$/, '');
-        const response = await axios.get(`${normalizedBase}/api/tweets/`);
-        // Handle paginated response if applicable, else assume array
-        const data = response.data.results ? response.data.results : response.data;
-        setPosts(data);
-      } catch (err) {
-        setError('Não foi possível carregar os posts. O servidor pode estar offline.');
-        console.error('Error fetching posts:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPosts();
-  }, []);
+const Navbar = () => {
+  const { user, logout } = useContext(AuthContext);
+  if (!user) return null;
 
   return (
-    <main>
-      <header className="app-header">
-        <h1 className="app-title">Risk Network</h1>
-        <p className="app-subtitle">A rede mais segura para suas postagens</p>
-      </header>
-      <section>
-        <Feed posts={posts} loading={loading} error={error} />
-      </section>
-    </main>
+    <nav className="navbar">
+      <Link to="/" className="nav-brand">Risk Network</Link>
+      <div className="nav-links">
+        <Link to="/profile" className="nav-item">
+          {user.avatar ? (
+            <img src={user.avatar} alt="Avatar" className="nav-avatar" />
+          ) : (
+            <UserIcon size={20} />
+          )}
+          <span>{user.username}</span>
+        </Link>
+        <button onClick={logout} className="logout-button" title="Sair">
+          <LogOut size={20} />
+        </button>
+      </div>
+    </nav>
+  );
+};
+
+function App() {
+  return (
+    <div className="app-layout">
+      <Navbar />
+      <main className="app-content">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <FeedWrapper />
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+      </main>
+    </div>
   );
 }
 
