@@ -1,70 +1,39 @@
-import React, { useContext } from 'react';
-import { Routes, Route, Navigate, Link } from 'react-router-dom';
-import { AuthContext } from './context/AuthContext';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import Login from './pages/Login';
-import Register from './pages/Register';
+import Feed from './pages/Feed';
 import Profile from './pages/Profile';
-import FeedWrapper from './components/FeedWrapper';
-
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useContext(AuthContext);
-  if (loading) return <div className="loading">Carregando...</div>;
-  if (!user) return <Navigate to="/login" replace />;
-  return children;
-};
-
-const Navbar = () => {
-  const { user, logout } = useContext(AuthContext);
-  if (!user) return null;
-
-  return (
-    <nav className="navbar">
-      <Link to="/" className="nav-brand">Risk Network</Link>
-      <div className="nav-links">
-        <Link to="/profile" className="nav-item">
-          {user.avatar ? (
-            <img src={user.avatar} alt="Avatar" className="nav-avatar" />
-          ) : (
-            <UserIcon size={20} />
-          )}
-          <span>{user.username}</span>
-        </Link>
-        <button onClick={logout} className="logout-button" title="Sair">
-          <LogOut size={20} />
-        </button>
-      </div>
-    </nav>
-  );
-};
+import ChangePassword from './pages/ChangePassword';
+import GeoRisk from './pages/GeoRisk';
+import Users from './pages/Users';
+import Navbar from './components/Navbar';
 
 function App() {
+  // Aplicar tema no body permanentemente
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+  }, []);
+
   return (
-    <div className="app-layout">
-      <Navbar />
-      <main className="app-content">
+    <Router>
+      <div className="app-wrapper">
+
         <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
-                <FeedWrapper />
-              </ProtectedRoute>
-            } 
-          />
+          
+          {/* Rotas com Navbar */}
+          <Route path="/feed" element={<><Navbar /><Feed global={false} /></>} />
+          <Route path="/posts" element={<><Navbar /><Feed global={true} /></>} />
+          <Route path="/profile" element={<><Navbar /><Profile /></>} />
+          <Route path="/change-password" element={<><Navbar /><ChangePassword /></>} />
+          <Route path="/users" element={<><Navbar /><Users /></>} />
+          
+          <Route path="/georisk" element={<GeoRisk />} />
         </Routes>
-      </main>
-    </div>
+      </div>
+    </Router>
   );
 }
 

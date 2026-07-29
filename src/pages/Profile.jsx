@@ -1,142 +1,175 @@
-import React, { useState, useContext, useEffect } from 'react';
-import api from '../api/axios';
-import { AuthContext } from '../context/AuthContext';
-import { User, Lock, Image as ImageIcon, Save } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import api from '../services/api';
 
-const Profile = () => {
-  const { user, fetchUser } = useContext(AuthContext);
+function Profile() {
+  const [user, setUser] = useState(null);
   const [username, setUsername] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [message, setMessage] = useState('');
   
-  const [message, setMessage] = useState({ type: '', text: '' });
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (user) {
-      setUsername(user.username || '');
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await api.get('/users/me/');
+      setUser(res.data);
+      setUsername(res.data.username);
+      setBio(res.data.bio || '');
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        navigate('/login');
+      }
     }
-  }, [user]);
+  };
 
-  const handleSubmit = async (e) => {
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage({ type: '', text: '' });
-
+    setMessage('');
+    
     const formData = new FormData();
     formData.append('username', username);
-    
-    if (newPassword) {
-      formData.append('current_password', currentPassword);
-      formData.append('password', newPassword);
-    }
-    
+    formData.append('bio', bio);
     if (avatar) {
       formData.append('avatar', avatar);
     }
 
     try {
-      await api.patch('/api/users/me/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const res = await api.patch('/users/me/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
-      setCurrentPassword('');
-      setNewPassword('');
-      setAvatar(null);
-      await fetchUser(); // Atualiza o contexto
+      setUser(res.data);
+      setMessage('Perfil atualizado com sucesso!');
     } catch (err) {
-      let errorText = 'Erro ao atualizar perfil.';
-      if (err.response?.data) {
-        // Formata os erros vindos do Django
-        const errors = Object.values(err.response.data).flat();
-        errorText = errors.join(' ');
+      console.error(err);
+      if (err.response?.data?.current_password) {
+        setMessage(`Erro: ${err.response.data.current_password}`);
+      } else {
+        setMessage('Erro ao atualizar perfil.');
       }
-      setMessage({ type: 'error', text: errorText });
-    } finally {
-      setLoading(false);
     }
   };
 
-  if (!user) return <div className="loading">Carregando...</div>;
+  const [activeTab, setActiveTab] = useState('edit');
+
+  if (!user) return <div className="container">Carregando...</div>;
 
   return (
-    <div className="profile-container">
-      <div className="profile-card">
-        <h2 className="profile-title">
-          <User className="icon" /> Meu Perfil
-        </h2>
-        
-        {message.text && (
-          <div className={`alert-message ${message.type}`}>
-            {message.text}
-          </div>
-        )}
-
-        <div className="current-profile">
-          <div className="avatar-large">
-            {user.avatar ? (
-              <img src={user.avatar} alt="Avatar" />
+    <div className="container" style={{ padding: '20px', maxWidth: '600px' }}>
+      <div className="glass-panel" style={{ padding: '30px' }}>
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '30px', alignItems: 'center' }}>
+          <div 
+            style={{ position: 'relative', cursor: 'pointer' }}
+            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+          >
+            {avatarPreview || user.avatar ? (
+              <img 
+                src={avatarPreview || user.avatar} 
+                alt="avatar" 
+                style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', opacity: 0.8 }} 
+              />
             ) : (
-              user.username.charAt(0).toUpperCase()
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '24px', fontWeight: 'bold', opacity: 0.8 }}>
+                {user.username.charAt(0).toUpperCase()}
+              </div>
             )}
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+              📷
+            </div>
           </div>
-          <p>@{user.username}</p>
+          <div>
+            <h3>@{user.username}</h3>
+            <p style={{ color: 'var(--text-muted)' }}>
+              {user.followers_count} Seguidores | {user.following_count} Seguindo
+            </p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="profile-form">
-          <div className="form-group">
-            <label><User size={16}/> Nome de Usuário</label>
-            <input 
-              type="text" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)} 
-              className="form-input"
-            />
-          </div>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px' }}>
+          <button className={`btn ${activeTab !== 'edit' ? 'btn-outline' : ''}`} onClick={() => setActiveTab('edit')}>Editar</button>
+          <button className={`btn ${activeTab !== 'followers' ? 'btn-outline' : ''}`} onClick={() => setActiveTab('followers')}>Seguidores</button>
+          <button className={`btn ${activeTab !== 'following' ? 'btn-outline' : ''}`} onClick={() => setActiveTab('following')}>Seguindo</button>
+        </div>
 
-          <div className="form-group">
-            <label><ImageIcon size={16}/> Foto de Perfil (Avatar)</label>
+        {activeTab === 'edit' && (
+          <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {message && <p style={{ color: message.includes('Erro') ? '#ef4444' : '#10b981' }}>{message}</p>}
+            
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Nome de Usuário</label>
+              <input 
+                className="input-field" 
+                value={username} 
+                onChange={e => setUsername(e.target.value)} 
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Bio</label>
+              <textarea 
+                className="input-field" 
+                value={bio} 
+                placeholder="Fale sobre vc"
+                onChange={e => setBio(e.target.value)} 
+                style={{ resize: 'none', height: '80px' }}
+              />
+            </div>
+
             <input 
               type="file" 
               accept="image/*"
-              onChange={(e) => setAvatar(e.target.files[0])} 
-              className="form-input file-input"
+              ref={fileInputRef}
+              onChange={e => {
+                if (e.target.files[0]) {
+                  setAvatar(e.target.files[0]);
+                  setAvatarPreview(URL.createObjectURL(e.target.files[0]));
+                }
+              }}
+              style={{ display: 'none' }}
             />
-          </div>
 
-          <h3 className="section-title"><Lock size={16}/> Alterar Senha (Opcional)</h3>
-          
-          <div className="form-group">
-            <label>Senha Atual</label>
-            <input 
-              type="password" 
-              value={currentPassword} 
-              onChange={(e) => setCurrentPassword(e.target.value)} 
-              className="form-input"
-              placeholder="Necessário se for alterar a senha"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Nova Senha</label>
-            <input 
-              type="password" 
-              value={newPassword} 
-              onChange={(e) => setNewPassword(e.target.value)} 
-              className="form-input"
-            />
-          </div>
+            <div style={{ marginTop: '10px' }}>
+              <Link to="/change-password" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-color)', textDecoration: 'none', fontWeight: 'bold' }}>
+                <span>🔒</span> Trocar senha
+              </Link>
+            </div>
 
-          <button type="submit" className="primary-button" disabled={loading}>
-            <Save size={18} /> {loading ? 'Salvando...' : 'Salvar Alterações'}
-          </button>
-        </form>
+            <button type="submit" className="btn" style={{ marginTop: '10px' }}>
+              Salvar Alterações
+            </button>
+          </form>
+        )}
+
+        {activeTab === 'followers' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {user.followers_list?.length > 0 ? user.followers_list.map(f => (
+              <div key={f.id} style={{ padding: '10px', background: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}>
+                <strong style={{ color: 'var(--primary-color)' }}>@{f.username}</strong>
+              </div>
+            )) : <p>Ninguém está seguindo você ainda.</p>}
+          </div>
+        )}
+
+        {activeTab === 'following' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {user.following_list?.length > 0 ? user.following_list.map(f => (
+              <div key={f.id} style={{ padding: '10px', background: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}>
+                <strong style={{ color: 'var(--primary-color)' }}>@{f.username}</strong>
+              </div>
+            )) : <p>Você não segue ninguém ainda.</p>}
+          </div>
+        )}
+
       </div>
     </div>
   );
-};
+}
 
 export default Profile;
