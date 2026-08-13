@@ -30,6 +30,7 @@ const GeoRisk = () => {
   const [type, setType] = useState('Inundacao');
   const [severity, setSeverity] = useState('Media');
   const [description, setDescription] = useState('');
+  const [eventDate, setEventDate] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [loading, setLoading] = useState(false);
@@ -81,6 +82,12 @@ const GeoRisk = () => {
       return;
     }
     
+    if (!eventDate) {
+      setErrorMessage("Por favor, preencha a data do evento.");
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+    
     setLoading(true);
     
     // Fallback de segurança para garantir que o botão sempre seja liberado após 10 segundos no máximo
@@ -93,6 +100,7 @@ const GeoRisk = () => {
         type,
         severity,
         description,
+        event_date: eventDate,
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude)
       });
@@ -107,7 +115,7 @@ const GeoRisk = () => {
         case 'Tempestade': emoji = '🟣'; break;
       }
       
-      const postContent = `${emoji} ${type}\nSeveridade: ${severity}\nDescrição: ${description || 'Sem descrição'}\nLat/Long: ${parseFloat(latitude)}, ${parseFloat(longitude)}`;
+      const postContent = `${emoji} ${type}\nSeveridade: ${severity}\nData: ${eventDate}\nDescrição: ${description || 'Sem descrição'}\nLat/Long: ${parseFloat(latitude)}, ${parseFloat(longitude)}`;
       
       try {
         await api.post('/tweets/', { content: postContent });
@@ -116,6 +124,7 @@ const GeoRisk = () => {
       }
 
       setDescription('');
+      setEventDate('');
       setLatitude('');
       setLongitude('');
       
@@ -244,6 +253,17 @@ const GeoRisk = () => {
             />
           </div>
 
+          <div>
+            <label>Data do Evento</label>
+            <input 
+              type="date" 
+              className="input-field" 
+              value={eventDate} 
+              onChange={e => setEventDate(e.target.value)} 
+              required 
+            />
+          </div>
+
           <div style={{ display: 'flex', gap: '10px' }}>
             <div style={{ flex: 1 }}>
               <label>Lat</label>
@@ -296,6 +316,7 @@ const GeoRisk = () => {
               <Popup>
                 <strong>{evt.type}</strong><br/>
                 Severidade: {evt.severity}<br/>
+                Data: {evt.event_date}<br/>
                 <small>{evt.description || 'Sem descrição'}</small>
               </Popup>
             </Marker>
