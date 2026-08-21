@@ -11,7 +11,7 @@ function Feed({ global = false }) {
 
   const fetchUser = async () => {
     try {
-      const res = await api.get('/users/me/');
+      const res = await api.get('/api/users/me/');
       setCurrentUser(res.data);
     } catch (err) {
       if (err.response && err.response.status === 401) {
@@ -22,7 +22,7 @@ function Feed({ global = false }) {
 
   const fetchTweets = async () => {
     try {
-      const endpoint = global ? '/tweets/' : '/tweets/feed/';
+      const endpoint = global ? '/api/tweets/' : '/api/tweets/feed/';
       const response = await api.get(endpoint);
       setTweets(response.data);
     } catch (err) {
@@ -42,7 +42,7 @@ function Feed({ global = false }) {
     e.preventDefault();
     if (!newTweet.trim()) return;
     try {
-      await api.post('/tweets/', { content: newTweet });
+      await api.post('/api/tweets/', { content: newTweet });
       setNewTweet('');
       fetchTweets(); // Atualiza a lista
     } catch (err) {

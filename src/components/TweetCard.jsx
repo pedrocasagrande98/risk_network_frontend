@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Heart, MessageCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Heart, MessageCircle, Map as MapIcon, Loader2 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, GeoJSON } from 'react-leaflet';
 import api from '../services/api';
 
 function TweetCard({ tweet, currentUser, onUpdate }) {
@@ -8,10 +9,32 @@ function TweetCard({ tweet, currentUser, onUpdate }) {
   const [newComment, setNewComment] = useState('');
   const [isLiked, setIsLiked] = useState(tweet.is_liked);
   const [likesCount, setLikesCount] = useState(tweet.likes_count);
+  const [showMap, setShowMap] = useState(false);
+  const [geoEvent, setGeoEvent] = useState(tweet.geo_event);
+
+  useEffect(() => {
+    let interval = null;
+    if (geoEvent && (geoEvent.status === 'PENDING' || geoEvent.status === 'PROCESSING')) {
+      interval = setInterval(async () => {
+        try {
+          const res = await api.get(`/api/georisk/${geoEvent.id}/`);
+          setGeoEvent(res.data);
+          if (res.data.status === 'COMPLETED' || res.data.status === 'FAILED') {
+            clearInterval(interval);
+          }
+        } catch (e) {
+          console.error('Error polling geo_event', e);
+        }
+      }, 5000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [geoEvent]);
 
   const handleLike = async () => {
     try {
-      await api.post(`/tweets/${tweet.id}/like/`);
+      await api.post(`/api/tweets/${tweet.id}/like/`);
       setIsLiked(!isLiked);
       setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
     } catch (err) {
@@ -22,7 +45,7 @@ function TweetCard({ tweet, currentUser, onUpdate }) {
   const handleToggleComments = async () => {
     if (!showComments) {
       try {
-        const res = await api.get(`/tweets/${tweet.id}/comments/`);
+        const res = await api.get(`/api/tweets/${tweet.id}/comments/`);
         setComments(res.data);
       } catch (err) {
         console.error('Erro ao buscar comentários', err);
@@ -35,7 +58,7 @@ function TweetCard({ tweet, currentUser, onUpdate }) {
     e.preventDefault();
     if (!newComment.trim()) return;
     try {
-      const res = await api.post(`/tweets/${tweet.id}/comments/`, { content: newComment });
+      const res = await api.post(`/api/tweets/${tweet.id}/comments/`, { content: newComment });
       setComments([...comments, res.data]);
       setNewComment('');
       if (onUpdate) onUpdate(); // para atualizar contagem no pai se necessário
@@ -94,6 +117,48 @@ function TweetCard({ tweet, currentUser, onUpdate }) {
       </div>
 
       <p style={{ marginTop: '15px', fontSize: '16px', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{tweet.content}</p>
+
+      {geoEvent && (
+        <div style={{ marginTop: '15px' }}>
+          {(geoEvent.status === 'PENDING' || geoEvent.status === 'PROCESSING') ? (
+            <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'not-allowed', opacity: 0.8 }} disabled>
+              <Loader2 className="spinner" size={16} /> Gerando Mapa de Risco (IA)...
+            </button>
+          ) : geoEvent.status === 'FAILED' ? (
+            <button className="btn btn-outline" style={{ borderColor: 'red', color: 'red', cursor: 'not-allowed' }} disabled>
+              ❌ Erro ao gerar Mapa
+            </button>
+          ) : (
+            <button 
+              className="btn" 
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: showMap ? '#ef4444' : 'var(--primary-color)' }}
+              onClick={() => setShowMap(!showMap)}
+            >
+              <MapIcon size={16} /> {showMap ? 'Ocultar Mapa' : 'Ver Mapa do Evento'}
+            </button>
+          )}
+
+          {showMap && geoEvent.status === 'COMPLETED' && (
+            <div style={{ marginTop: '15px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--glass-border)', height: '250px' }}>
+              <MapContainer 
+                center={[geoEvent.latitude, geoEvent.longitude]} 
+                zoom={14} 
+                style={{ height: '100%', width: '100%' }}
+                scrollWheelZoom={false}
+              >
+                <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+                <Marker position={[geoEvent.latitude, geoEvent.longitude]} />
+                {geoEvent.flood_geojson && (
+                  <GeoJSON data={geoEvent.flood_geojson} style={{ color: '#3b82f6', weight: 2, fillOpacity: 0.5 }} />
+                )}
+                {geoEvent.streets_geojson && (
+                  <GeoJSON data={geoEvent.streets_geojson} style={{ color: '#ef4444', weight: 3 }} />
+                )}
+              </MapContainer>
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '20px', marginTop: '15px', paddingTop: '15px', borderTop: '1px solid var(--glass-border)' }}>
         <button 

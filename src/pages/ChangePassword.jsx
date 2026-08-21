@@ -18,7 +18,7 @@ function ChangePassword() {
     }
 
     try {
-      await api.patch('/users/me/', {
+      await api.patch('/api/users/me/', {
         current_password: currentPassword,
         password: password
       });

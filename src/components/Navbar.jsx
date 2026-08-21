@@ -9,7 +9,7 @@ function Navbar() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await api.get('/users/me/');
+        const res = await api.get('/api/users/me/');
         setCurrentUser(res.data);
       } catch (err) {
         // Not logged in or token expired

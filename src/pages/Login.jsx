@@ -15,11 +15,11 @@ function Login() {
     
     try {
       if (isRegistering) {
-        await api.post('/users/auth/register/', { username, password });
+        await api.post('/api/users/auth/register/', { username, password });
         setIsRegistering(false);
         setError('Conta criada! Faça login.');
       } else {
-        const response = await api.post('/users/auth/login/', { username, password });
+        const response = await api.post('/api/users/auth/login/', { username, password });
         localStorage.setItem('access_token', response.data.access);
         navigate('/feed');
       }

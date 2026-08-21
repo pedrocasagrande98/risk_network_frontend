@@ -19,7 +19,7 @@ function Profile() {
 
   const fetchProfile = async () => {
     try {
-      const res = await api.get('/users/me/');
+      const res = await api.get('/api/users/me/');
       setUser(res.data);
       setUsername(res.data.username);
       setBio(res.data.bio || '');
@@ -42,7 +42,7 @@ function Profile() {
     }
 
     try {
-      const res = await api.patch('/users/me/', formData, {
+      const res = await api.patch('/api/users/me/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setUser(res.data);
