@@ -7,12 +7,32 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# ===================== #
+# Segredos & credenciais #
+# ===================== #
+.env
+.env.*
+*.env
+!.env.example
+service_account*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+
+# ===================== #
+# Dependências / build
+# ===================== #
 node_modules
 dist
 dist-ssr
+dev
 *.local
 
+# ===================== #
 # Editor directories and files
+# ===================== #
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,3 +42,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ===================== #
+# Testes / cobertura
+# ===================== #
+coverage/
+.nyc_output/

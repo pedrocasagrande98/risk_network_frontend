@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../api/axios';
+import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { UserPlus } from 'lucide-react';
 

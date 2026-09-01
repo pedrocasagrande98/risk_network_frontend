@@ -146,7 +146,10 @@ function TweetCard({ tweet, currentUser, onUpdate }) {
                 style={{ height: '100%', width: '100%' }}
                 scrollWheelZoom={false}
               >
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+                <TileLayer
+                  attribution='Tiles &copy; Esri'
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+                />
                 <Marker position={[geoEvent.latitude, geoEvent.longitude]} />
                 {geoEvent.flood_geojson && (
                   <GeoJSON data={geoEvent.flood_geojson} style={{ color: '#3b82f6', weight: 2, fillOpacity: 0.5 }} />
