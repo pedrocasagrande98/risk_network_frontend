@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
+import UserAvatar from '../components/UserAvatar';
 
 function Users() {
   const [users, setUsers] = useState([]);
@@ -30,23 +31,21 @@ function Users() {
 
   const handleFollow = async (userId) => {
     try {
-      await api.post(`/users/${userId}/follow/`);
-      // Update the user list and current user follow lists
-      fetchUsers();
+      await api.post(`/api/users/${userId}/follow/`);
       fetchCurrentUser();
+      fetchUsers();
     } catch (err) {
-      console.error('Erro ao seguir', err);
+      console.error(err);
     }
   };
 
   const isFollowing = (userId) => {
-    if (!currentUser || !currentUser.following_list) return false;
-    return currentUser.following_list.some(f => f.id === userId);
+    return currentUser?.following_list?.some(f => f.id === userId);
   };
 
   return (
-    <div className="container" style={{ padding: '20px', maxWidth: '700px' }}>
-      <h2 style={{ marginBottom: '30px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px' }}>Descobrir Usuários</h2>
+    <div className="container" style={{ padding: '20px' }}>
+      <h2 style={{ marginBottom: '20px', color: 'var(--primary-color)' }}>Comunidade</h2>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
         {users.map(user => {
@@ -55,13 +54,7 @@ function Users() {
           return (
             <div key={user.id} className="glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                {user.avatar ? (
-                  <img src={user.avatar} alt="avatar" style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>
-                    {user.username.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <UserAvatar avatar={user.avatar} username={user.username} size={50} fontSize="20px" />
                 <div>
                   <h4 style={{ margin: 0, fontSize: '18px' }}>@{user.username}</h4>
                   <small style={{ color: 'var(--text-muted)' }}>

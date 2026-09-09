@@ -13,6 +13,7 @@ import {
   MapEventsHandler, FlyToMapCenter, WindLayer,
   ThreeVFXOverlay, useGEELayer, GEETileLayer,
 } from '../components/Map';
+import UserAvatar from '../components/UserAvatar';
 import { GEE_TRIGGER_DELAY } from '../components/Map/ThreeVFXOverlay';
 
 // Tipos de evento que possuem camada GEE no backend:
@@ -512,13 +513,7 @@ const GeoRiskInner = () => {
               >
                 <Popup>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                    {evt.user_avatar ? (
-                      <img src={evt.user_avatar} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                        {evt.username ? evt.username.charAt(0).toUpperCase() : '?'}
-                      </div>
-                    )}
+                    <UserAvatar avatar={evt.user_avatar} username={evt.username} size={32} />
                     <span style={{ fontWeight: 'bold' }}>@{evt.username || 'desconhecido'}</span>
                   </div>
                   <strong>{evt.type}</strong><br />

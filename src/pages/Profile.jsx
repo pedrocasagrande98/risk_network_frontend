@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
+import { getMediaUrl } from '../utils/media';
 
 function Profile() {
   const [user, setUser] = useState(null);
@@ -8,6 +9,7 @@ function Profile() {
   const [bio, setBio] = useState('');
   const [avatar, setAvatar] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [imageError, setImageError] = useState(false);
   const [message, setMessage] = useState('');
   
   const navigate = useNavigate();
@@ -23,11 +25,33 @@ function Profile() {
       setUser(res.data);
       setUsername(res.data.username);
       setBio(res.data.bio || '');
+      setImageError(false);
     } catch (err) {
       if (err.response && err.response.status === 401) {
         navigate('/login');
       }
     }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setMessage('Erro: Selecione um arquivo de imagem válido (PNG, JPG, WEBP).');
+      return;
+    }
+
+    const maxBytes = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxBytes) {
+      setMessage('Erro: A imagem deve ter no máximo 5MB.');
+      return;
+    }
+
+    setAvatar(file);
+    setAvatarPreview(URL.createObjectURL(file));
+    setImageError(false);
+    setMessage('');
   };
 
   const handleUpdate = async (e) => {
@@ -46,6 +70,12 @@ function Profile() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setUser(res.data);
+      setAvatar(null);
+      setAvatarPreview(null);
+      setImageError(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       setMessage('Perfil atualizado com sucesso!');
     } catch (err) {
       console.error(err);
@@ -61,6 +91,8 @@ function Profile() {
 
   if (!user) return <div className="container">Carregando...</div>;
 
+  const currentAvatarSrc = avatarPreview || getMediaUrl(user.avatar);
+
   return (
     <div className="container" style={{ padding: '20px', maxWidth: '600px' }}>
       <div className="glass-panel" style={{ padding: '30px' }}>
@@ -68,19 +100,21 @@ function Profile() {
           <div 
             style={{ position: 'relative', cursor: 'pointer' }}
             onClick={() => fileInputRef.current && fileInputRef.current.click()}
+            title="Clique para alterar a foto de perfil"
           >
-            {avatarPreview || user.avatar ? (
+            {currentAvatarSrc && !imageError ? (
               <img 
-                src={avatarPreview || user.avatar} 
+                src={currentAvatarSrc} 
                 alt="avatar" 
-                style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', opacity: 0.8 }} 
+                onError={() => setImageError(true)}
+                style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} 
               />
             ) : (
-              <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '24px', fontWeight: 'bold', opacity: 0.8 }}>
-                {user.username.charAt(0).toUpperCase()}
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '26px', fontWeight: 'bold' }}>
+                {user.username ? user.username.charAt(0).toUpperCase() : '?'}
               </div>
             )}
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.3)', transition: 'opacity 0.2s' }}>
               📷
             </div>
           </div>
@@ -126,12 +160,7 @@ function Profile() {
               type="file" 
               accept="image/*"
               ref={fileInputRef}
-              onChange={e => {
-                if (e.target.files[0]) {
-                  setAvatar(e.target.files[0]);
-                  setAvatarPreview(URL.createObjectURL(e.target.files[0]));
-                }
-              }}
+              onChange={handleFileChange}
               style={{ display: 'none' }}
             />
 

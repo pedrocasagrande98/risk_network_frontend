@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Map as MapIcon, Loader2 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, GeoJSON } from 'react-leaflet';
 import api from '../services/api';
+import UserAvatar from './UserAvatar';
 
 function TweetCard({ tweet, currentUser, onUpdate }) {
   const [showComments, setShowComments] = useState(false);
@@ -21,11 +22,12 @@ function TweetCard({ tweet, currentUser, onUpdate }) {
           setGeoEvent(res.data);
           if (res.data.status === 'COMPLETED' || res.data.status === 'FAILED') {
             clearInterval(interval);
+            if (onUpdate) onUpdate();
           }
-        } catch (e) {
-          console.error('Error polling geo_event', e);
+        } catch (err) {
+          console.error(err);
         }
-      }, 5000);
+      }, 3000);
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -34,16 +36,21 @@ function TweetCard({ tweet, currentUser, onUpdate }) {
 
   const handleLike = async () => {
     try {
-      await api.post(`/api/tweets/${tweet.id}/like/`);
-      setIsLiked(!isLiked);
-      setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+      const res = await api.post(`/api/tweets/${tweet.id}/like/`);
+      if (res.data.message === 'Liked') {
+        setIsLiked(true);
+        setLikesCount(likesCount + 1);
+      } else {
+        setIsLiked(false);
+        setLikesCount(likesCount - 1);
+      }
     } catch (err) {
-      console.error('Erro ao dar like:', err);
+      console.error('Erro ao dar like', err);
     }
   };
 
   const handleToggleComments = async () => {
-    if (!showComments) {
+    if (!showComments && comments.length === 0) {
       try {
         const res = await api.get(`/api/tweets/${tweet.id}/comments/`);
         setComments(res.data);
@@ -57,26 +64,29 @@ function TweetCard({ tweet, currentUser, onUpdate }) {
   const handlePostComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
+
     try {
-      const res = await api.post(`/api/tweets/${tweet.id}/comments/`, { content: newComment });
+      const res = await api.post(`/api/tweets/${tweet.id}/comments/`, {
+        content: newComment
+      });
       setComments([...comments, res.data]);
       setNewComment('');
-      if (onUpdate) onUpdate(); // para atualizar contagem no pai se necessário
     } catch (err) {
-      console.error('Erro ao comentar', err);
+      console.error('Erro ao postar comentário', err);
     }
   };
 
   const [followText, setFollowText] = useState('Seguir / Unfollow');
 
-  const handleFollow = async (userId) => {
+  const handleFollow = async (authorId) => {
     try {
-      setFollowText('Aguarde...');
-      await api.post(`/users/${userId}/follow/`);
-      setFollowText('✅ Sucesso!');
-      if (onUpdate) onUpdate(); // Refresh the feed or user list
-      
-      // Volta o texto original depois de 2 segundos
+      setFollowText('Atualizando...');
+      const res = await api.post(`/api/users/${authorId}/follow/`);
+      if (res.data.message.includes('unfollowed')) {
+        setFollowText('Deixou de seguir');
+      } else {
+        setFollowText('Seguindo');
+      }
       setTimeout(() => {
         setFollowText('Seguir / Unfollow');
       }, 2000);
@@ -93,13 +103,7 @@ function TweetCard({ tweet, currentUser, onUpdate }) {
     <div className="glass-panel" style={{ padding: '20px', marginBottom: '15px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {tweet.author.avatar ? (
-            <img src={tweet.author.avatar} alt="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-          ) : (
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold' }}>
-              {tweet.author.username.charAt(0).toUpperCase()}
-            </div>
-          )}
+          <UserAvatar avatar={tweet.author.avatar} username={tweet.author.username} size={40} />
           <div>
             <h4 style={{ color: 'var(--text-color)', margin: 0 }}>@{tweet.author.username}</h4>
             <small style={{ color: 'var(--text-muted)' }}>{new Date(tweet.created_at).toLocaleString()}</small>

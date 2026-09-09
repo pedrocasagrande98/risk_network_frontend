@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import UserAvatar from './UserAvatar';
 
 function Navbar() {
   const navigate = useNavigate();
@@ -39,8 +40,13 @@ function Navbar() {
         </nav>
       </div>
       
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        {currentUser && <span style={{ marginRight: '10px' }}>Olá, @{currentUser.username}</span>}
+      <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+        {currentUser && (
+          <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'var(--text-color)' }} title="Ver meu perfil">
+            <UserAvatar avatar={currentUser.avatar} username={currentUser.username} size={34} />
+            <span style={{ fontWeight: '500' }}>@{currentUser.username}</span>
+          </Link>
+        )}
         <Link to="/profile" className="btn btn-outline" style={{ textDecoration: 'none' }}>Meu Perfil</Link>
         <button className="btn btn-outline" onClick={logout}>Sair</button>
       </div>
